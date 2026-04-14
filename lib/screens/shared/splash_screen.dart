@@ -41,9 +41,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     if (!mounted) return;
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null) { context.go('/onboarding'); return; }
-    final user = await Supabase.instance.client.from('utilisateurs').select('role').eq('id', session.user.id).single();
+    final user = await Supabase.instance.client
+        .from('utilisateurs')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
     if (!mounted) return;
-    context.go(user['role'] == 'vendeur' ? '/vendeur' : '/home');
+
+    // ✅ Redirection selon le rôle
+    final role = user['role'];
+    if (role == 'administrateur') {
+      context.go('/admin');
+    } else if (role == 'vendeur') {
+      context.go('/vendeur');
+    } else {
+      context.go('/home');
+    }
   }
 
   @override

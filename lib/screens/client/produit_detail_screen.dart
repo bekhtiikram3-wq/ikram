@@ -24,6 +24,60 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
   void initState() {
     super.initState();
     _loadProduit();
+    _checkWishlist();
+  }
+
+  Future<void> _checkWishlist() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+      final data = await supabase
+          .from('wishlist')
+          .select('id')
+          .eq('client_id', userId)
+          .eq('produit_id', widget.produitId)
+          .maybeSingle();
+      if (mounted) setState(() => _dansWishlist = data != null);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleWishlist() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      if (_dansWishlist) {
+        await supabase.from('wishlist')
+            .delete()
+            .eq('client_id', userId)
+            .eq('produit_id', widget.produitId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Retiré de la wishlist'),
+          backgroundColor: Colors.grey.shade600,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      } else {
+        await supabase.from('wishlist').insert({
+          'client_id': userId,
+          'produit_id': widget.produitId,
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Ajouté à la wishlist ❤️'),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
+      }
+      setState(() => _dansWishlist = !_dansWishlist);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e.toString()),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ));
+    }
   }
 
   Future<void> _loadProduit() async {
@@ -63,7 +117,6 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
       backgroundColor: const Color(0xFFF0F4FF),
       body: CustomScrollView(
         slivers: [
-          // ── Image header ──
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
@@ -78,12 +131,15 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
             ),
             actions: [
               GestureDetector(
-                onTap: () => setState(() => _dansWishlist = !_dansWishlist),
+                onTap: _toggleWishlist,
                 child: Container(
                   margin: const EdgeInsets.all(8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(_dansWishlist ? Icons.favorite : Icons.favorite_border, color: _dansWishlist ? Colors.red : kBlue1),
+                  child: Icon(
+                    _dansWishlist ? Icons.favorite : Icons.favorite_border,
+                    color: _dansWishlist ? Colors.red : kBlue1,
+                  ),
                 ),
               ),
             ],
@@ -102,19 +158,14 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
             ),
           ),
 
-          // ── Contenu ──
           SliverToBoxAdapter(
             child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF0F4FF),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFFF0F4FF), borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Badge + titre
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(6)),
@@ -123,80 +174,50 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
                     const SizedBox(height: 10),
                     Text(p['titre'] ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
                     const SizedBox(height: 12),
-
-                    // Stats
-                    Row(
-                      children: [
-                        _statBadge(Icons.star, '${p['note_moyenne'] ?? 0}', Colors.amber),
-                        const SizedBox(width: 12),
-                        _statBadge(Icons.shopping_bag_outlined, '${p['nombre_ventes'] ?? 0} ventes', kBlue2),
-                        const SizedBox(width: 12),
-                        _statBadge(Icons.comment_outlined, '${p['nombre_avis'] ?? 0} avis', Colors.green),
-                      ],
-                    ),
+                    Row(children: [
+                      _statBadge(Icons.star, '${p['note_moyenne'] ?? 0}', Colors.amber),
+                      const SizedBox(width: 12),
+                      _statBadge(Icons.shopping_bag_outlined, '${p['nombre_ventes'] ?? 0} ventes', kBlue2),
+                      const SizedBox(width: 12),
+                      _statBadge(Icons.comment_outlined, '${p['nombre_avis'] ?? 0} avis', Colors.green),
+                    ]),
                     const SizedBox(height: 16),
-
-                    // Vendeur
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(12)),
-                            child: const Icon(Icons.store, color: kBlue1),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(v['nom_boutique'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                                Row(children: [
-                                  const Icon(Icons.star, color: Colors.amber, size: 14),
-                                  Text(' ${v['note_moyenne'] ?? 0} · ${v['total_ventes'] ?? 0} ventes', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                                  if (v['est_verifie'] == true) ...[
-                                    const SizedBox(width: 6),
-                                    const Icon(Icons.verified, color: Colors.blue, size: 14),
-                                  ],
-                                ]),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: Row(children: [
+                        Container(width: 44, height: 44, decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.store, color: kBlue1)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(v['nom_boutique'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
+                          Row(children: [
+                            const Icon(Icons.star, color: Colors.amber, size: 14),
+                            Text(' ${v['note_moyenne'] ?? 0} · ${v['total_ventes'] ?? 0} ventes', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                            if (v['est_verifie'] == true) ...[const SizedBox(width: 6), const Icon(Icons.verified, color: Colors.blue, size: 14)],
+                          ]),
+                        ])),
+                      ]),
                     ),
                     const SizedBox(height: 16),
-
-                    // Description
                     const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
                     const SizedBox(height: 8),
                     Text(p['description'] ?? '', style: TextStyle(color: Colors.grey.shade700, height: 1.6, fontSize: 14)),
                     const SizedBox(height: 16),
-
-                    // Tags
                     if (tags.isNotEmpty) ...[
                       const Text('Tags', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
                       const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8, runSpacing: 6,
-                        children: tags.map((t) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(20)),
-                          child: Text('#$t', style: const TextStyle(color: kBlue1, fontSize: 12, fontWeight: FontWeight.w600)),
-                        )).toList(),
-                      ),
+                      Wrap(spacing: 8, runSpacing: 6, children: tags.map((t) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(20)),
+                        child: Text('#$t', style: const TextStyle(color: kBlue1, fontSize: 12, fontWeight: FontWeight.w600)),
+                      )).toList()),
                       const SizedBox(height: 16),
                     ],
-
-                    // Avis
                     if (avis.isNotEmpty) ...[
                       const Text('Avis récents', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
                       const SizedBox(height: 8),
                       ...avis.take(3).map((a) => _buildAvis(a)),
                     ],
-
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -206,37 +227,21 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
         ],
       ),
 
-      // ── Bouton achat ──
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: kBlue1.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))],
-        ),
-        child: Row(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Prix', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                Text('${p['prix_dzd'] ?? 0} DZD', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBlue1)),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _ajouterPanier,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBlue1,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('Ajouter au panier', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
+        decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: kBlue1.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))]),
+        child: Row(children: [
+          Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Prix', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text('${p['prix_dzd'] ?? 0} DZD', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBlue1)),
+          ]),
+          const SizedBox(width: 16),
+          Expanded(child: ElevatedButton(
+            onPressed: _ajouterPanier,
+            style: ElevatedButton.styleFrom(backgroundColor: kBlue1, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+            child: const Text('Ajouter au panier', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          )),
+        ]),
       ),
     );
   }
@@ -255,19 +260,13 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(a['client'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Row(children: List.generate(5, (i) => Icon(Icons.star, color: i < (a['note'] ?? 0) ? Colors.amber : Colors.grey.shade300, size: 14))),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(a['commentaire'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-      ],
-    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Text(a['client'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Row(children: List.generate(5, (i) => Icon(Icons.star, color: i < (a['note'] ?? 0) ? Colors.amber : Colors.grey.shade300, size: 14))),
+      ]),
+      const SizedBox(height: 6),
+      Text(a['commentaire'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+    ]),
   );
 }

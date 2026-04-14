@@ -25,11 +25,27 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final res = await Supabase.instance.client.auth.signInWithPassword(email: _emailCtrl.text.trim(), password: _passCtrl.text);
+      final res = await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passCtrl.text,
+      );
       if (!mounted) return;
-      final user = await Supabase.instance.client.from('utilisateurs').select('role').eq('id', res.user!.id).single();
+      final user = await Supabase.instance.client
+          .from('utilisateurs')
+          .select('role')
+          .eq('id', res.user!.id)
+          .single();
       if (!mounted) return;
-      context.go(user['role'] == 'vendeur' ? '/vendeur' : '/home');
+
+      // ✅ Redirection selon le rôle
+      final role = user['role'];
+      if (role == 'administrateur') {
+        context.go('/admin');
+      } else if (role == 'vendeur') {
+        context.go('/vendeur');
+      } else {
+        context.go('/home');
+      }
     } on AuthException catch (e) {
       if (!mounted) return;
       _showError(e.message);
@@ -60,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 48),
-                // Logo
                 Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
@@ -75,7 +90,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text('Connectez-vous à votre compte', style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
                 const SizedBox(height: 40),
 
-                // Email
                 _label('Adresse email'),
                 const SizedBox(height: 8),
                 _input(
@@ -87,7 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password
                 _label('Mot de passe'),
                 const SizedBox(height: 8),
                 _input(
@@ -111,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Bouton
                 GestureDetector(
                   onTap: _loading ? null : _login,
                   child: Container(
@@ -128,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Divider
                 Row(children: [
                   Expanded(child: Divider(color: Colors.grey.shade200)),
                   Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Text('ou', style: TextStyle(color: Colors.grey.shade400, fontSize: 13))),
@@ -136,11 +147,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ]),
                 const SizedBox(height: 24),
 
-                // Google button
                 _socialBtn(Icons.g_mobiledata_rounded, 'Continuer avec Google', () {}),
                 const SizedBox(height: 40),
 
-                // Inscription
                 Center(child: GestureDetector(
                   onTap: () => context.go('/register'),
                   child: RichText(text: TextSpan(

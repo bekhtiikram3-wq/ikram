@@ -70,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
             ]),
             const SizedBox(height: 16),
-            // Search
             GestureDetector(
               onTap: () => context.go('/catalogue'),
               child: Container(
@@ -92,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ]),
         )),
 
-        // ── Bannière ──
+        // ── Bannière ── CORRIGÉE
         SliverToBoxAdapter(child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Container(
@@ -105,17 +104,33 @@ class _HomeScreenState extends State<HomeScreen> {
               Positioned(right: -20, top: -20, child: Container(width: 130, height: 130, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.07)))),
               Positioned(right: 30, bottom: -30, child: Container(width: 90, height: 90, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.05)))),
               Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(6)), child: const Text('NOUVEAU', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700))),
-                  const SizedBox(height: 8),
-                  const Text('Découvrez les\nmeilleurs produits', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, height: 1.2)),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () => context.go('/catalogue'),
-                    child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)), child: const Text('Explorer', style: TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w700))),
-                  ),
-                ]),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+                      child: const Text('NOUVEAU', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Découvrez les\nmeilleurs produits',
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800, height: 1.2),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => context.go('/catalogue'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                        child: const Text('Explorer', style: TextStyle(color: kPrimary, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Positioned(right: 16, bottom: 0, top: 0, child: Center(child: Icon(Icons.rocket_launch_rounded, color: Colors.white.withOpacity(0.5), size: 72))),
             ]),
