@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_colors.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/client/home_screen.dart';
@@ -94,7 +95,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _ClientShell extends StatelessWidget {
   final Widget child;
   const _ClientShell({required this.child});
-  static const kPrimary = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -109,13 +109,19 @@ class _ClientShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, -4))],
+          color: AppColors.kDeepDark,
+          border: Border(top: BorderSide(color: AppColors.kBlueViolet.withOpacity(0.2))),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.kDeepDark.withOpacity(0.8),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -137,17 +143,35 @@ class _ClientShell extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.go(route),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? kPrimary.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          gradient: isActive ? AppColors.buttonGradient : null,
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(isActive ? active : inactive, color: isActive ? kPrimary : Colors.grey.shade400, size: 22),
-          const SizedBox(height: 3),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.w700 : FontWeight.w400, color: isActive ? kPrimary : Colors.grey.shade400)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: isActive ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                isActive ? active : inactive,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -155,13 +179,14 @@ class _ClientShell extends StatelessWidget {
   Widget _navItemSpecial(BuildContext context, String route) => GestureDetector(
     onTap: () => context.go(route),
     child: Container(
-      width: 48, height: 48,
+      width: 56,
+      height: 56,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [kPrimary, Color(0xFF7C3AED)]),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: kPrimary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+        gradient: AppColors.buttonGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.glowShadow(0.5),
       ),
-      child: const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 22),
+      child: const Icon(Icons.shopping_cart_rounded, color: AppColors.kLight, size: 26),
     ),
   );
 }
@@ -170,8 +195,6 @@ class _ClientShell extends StatelessWidget {
 class _VendeurShell extends StatelessWidget {
   final Widget child;
   const _VendeurShell({required this.child});
-  static const kPrimary = Color(0xFF2563EB);
-  static const kAccent  = Color(0xFF7C3AED);
 
   @override
   Widget build(BuildContext context) {
@@ -186,13 +209,19 @@ class _VendeurShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, -4))],
+          color: AppColors.kDeepDark,
+          border: Border(top: BorderSide(color: AppColors.kBlueViolet.withOpacity(0.2))),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.kDeepDark.withOpacity(0.8),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -214,17 +243,35 @@ class _VendeurShell extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.go(route),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? kPrimary.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          gradient: isActive ? AppColors.buttonGradient : null,
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(isActive ? active : inactive, color: isActive ? kPrimary : Colors.grey.shade400, size: 22),
-          const SizedBox(height: 3),
-          Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.w700 : FontWeight.w400, color: isActive ? kPrimary : Colors.grey.shade400)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: isActive ? 1.1 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                isActive ? active : inactive,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -232,13 +279,14 @@ class _VendeurShell extends StatelessWidget {
   Widget _navItemAdd(BuildContext context) => GestureDetector(
     onTap: () => context.go('/vendeur/ajouter'),
     child: Container(
-      width: 48, height: 48,
+      width: 56,
+      height: 56,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [kPrimary, kAccent]),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: kPrimary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+        gradient: AppColors.buttonGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: AppColors.glowShadow(0.5),
       ),
-      child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+      child: const Icon(Icons.add_rounded, color: AppColors.kLight, size: 28),
     ),
   );
 }
@@ -247,7 +295,6 @@ class _VendeurShell extends StatelessWidget {
 class _AdminShell extends StatelessWidget {
   final Widget child;
   const _AdminShell({required this.child});
-  static const kPrimary = Color(0xFF2563EB);
 
   @override
   Widget build(BuildContext context) {
@@ -262,13 +309,19 @@ class _AdminShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade100)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, -4))],
+          color: AppColors.kDeepDark,
+          border: Border(top: BorderSide(color: AppColors.kBlueViolet.withOpacity(0.2))),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.kDeepDark.withOpacity(0.8),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -291,17 +344,35 @@ class _AdminShell extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.go(route),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? kPrimary.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          gradient: isActive ? AppColors.buttonGradient : null,
+          borderRadius: BorderRadius.circular(14),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(isActive ? active : inactive, color: isActive ? kPrimary : Colors.grey.shade400, size: 20),
-          const SizedBox(height: 3),
-          Text(label, style: TextStyle(fontSize: 9, fontWeight: isActive ? FontWeight.w700 : FontWeight.w400, color: isActive ? kPrimary : Colors.grey.shade400)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedScale(
+              scale: isActive ? 1.05 : 1.0,
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                isActive ? active : inactive,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppColors.kLight : AppColors.kBlueViolet.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -311,14 +382,21 @@ class _AdminShell extends StatelessWidget {
       await Supabase.instance.client.auth.signOut();
       if (context.mounted) context.go('/login');
     },
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: const Icon(Icons.logout_rounded, color: Colors.red, size: 18),
-      ),
-      const SizedBox(height: 3),
-      const Text('Quitter', style: TextStyle(fontSize: 9, color: Colors.red, fontWeight: FontWeight.w600)),
-    ]),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.logout_rounded, color: Colors.red, size: 18),
+        ),
+        const SizedBox(height: 4),
+        const Text('Quitter', style: TextStyle(fontSize: 9, color: Colors.red, fontWeight: FontWeight.w600)),
+      ],
+    ),
   );
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:animate_do/animate_do.dart';
+import '../../app_colors.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,152 +11,293 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nomCtrl      = TextEditingController();
-  final _emailCtrl    = TextEditingController();
-  final _passCtrl     = TextEditingController();
-  final _boutiqueCtrl = TextEditingController();
-  final _formKey      = GlobalKey<FormState>();
-  bool _loading       = false;
-  bool _showPass      = false;
-  String _role        = 'client';
-
-  static const kPrimary = Color(0xFF2563EB);
-  static const kAccent  = Color(0xFF7C3AED);
+  final _nomUtilisateurCtrl = TextEditingController();
+  final _nomBoutiqueCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _loading = false;
+  bool _obscurePassword = true;
+  String _selectedRole = 'client';
 
   @override
-  void dispose() { _nomCtrl.dispose(); _emailCtrl.dispose(); _passCtrl.dispose(); _boutiqueCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _nomUtilisateurCtrl.dispose();
+    _nomBoutiqueCtrl.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await Supabase.instance.client.auth.signUp(
+      final authResponse = await Supabase.instance.client.auth.signUp(
         email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-        data: {'nom': _nomCtrl.text.trim(), 'role': _role, if (_role == 'vendeur') 'nom_boutique': _boutiqueCtrl.text.trim()},
+        password: _passwordCtrl.text,
       );
-      await Future.delayed(const Duration(seconds: 2));
+      if (authResponse.user == null) throw Exception('Erreur inscription');
+
+      await Supabase.instance.client.from('utilisateurs').insert({
+        'id': authResponse.user!.id,
+        'email': _emailCtrl.text.trim(),
+        'nom': _nomUtilisateurCtrl.text.trim(),
+        'role': _selectedRole,
+        'statut': 'actif',
+      });
+
+      if (_selectedRole == 'client') {
+        await Supabase.instance.client.from('clients').insert({
+          'id': authResponse.user!.id,
+          'adresse': '',
+          'telephone': '',
+        });
+      } else if (_selectedRole == 'vendeur') {
+        await Supabase.instance.client.from('vendeurs').insert({
+          'id': authResponse.user!.id,
+          'nom_boutique': _nomBoutiqueCtrl.text.trim(),
+          'description': '',
+          'solde_dzd': 0,
+        });
+      }
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('Compte créé avec succès !'),
-        backgroundColor: Colors.green.shade400,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
-      await Future.delayed(const Duration(seconds: 1));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('✅ Compte créé avec succès !'),
+          backgroundColor: Colors.green.shade400,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      context.go('/login');
+    } catch (e) {
       if (!mounted) return;
-      context.go(_role == 'vendeur' ? '/vendeur' : '/home');
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: Colors.red.shade400, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur : ${e.toString()}'),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () => context.go('/login'),
-                  child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF0F172A)),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                const Text('Créer un compte', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.5)),
-                const SizedBox(height: 6),
-                Text('Rejoignez DigitalStore DZ', style: TextStyle(fontSize: 15, color: Colors.grey.shade500)),
-                const SizedBox(height: 32),
-
-                // Choix rôle
-                const Text('Je souhaite', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
-                const SizedBox(height: 10),
-                Row(children: [
-                  _roleCard('client', 'Acheter', Icons.shopping_bag_outlined, kPrimary),
-                  const SizedBox(width: 12),
-                  _roleCard('vendeur', 'Vendre', Icons.storefront_outlined, kAccent),
-                ]),
-                const SizedBox(height: 24),
-
-                _label('Nom complet'),
-                const SizedBox(height: 8),
-                _input(_nomCtrl, 'Votre nom', Icons.person_outline_rounded, validator: (v) => v!.isEmpty ? 'Requis' : null),
-                const SizedBox(height: 16),
-
-                _label('Adresse email'),
-                const SizedBox(height: 8),
-                _input(_emailCtrl, 'exemple@email.com', Icons.email_outlined, keyboard: TextInputType.emailAddress, validator: (v) => v!.isEmpty ? 'Requis' : !v.contains('@') ? 'Email invalide' : null),
-                const SizedBox(height: 16),
-
-                _label('Mot de passe'),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passCtrl,
-                  obscureText: !_showPass,
-                  validator: (v) => v!.isEmpty ? 'Requis' : v.length < 6 ? 'Min. 6 caractères' : null,
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A)),
-                  decoration: InputDecoration(
-                    hintText: '••••••••',
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.grey.shade400, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(_showPass ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 20),
-                      onPressed: () => setState(() => _showPass = !_showPass),
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo
+                    FadeInDown(
+                      duration: const Duration(milliseconds: 800),
+                      child: Container(
+                        width: 100, height: 100,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.buttonGradient,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: AppColors.glowShadow(0.5),
+                        ),
+                        child: const Icon(Icons.person_add_rounded, color: AppColors.kLight, size: 52),
+                      ),
                     ),
-                    filled: true, fillColor: const Color(0xFFF8FAFC),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                ),
+                    const SizedBox(height: 32),
 
-                if (_role == 'vendeur') ...[
-                  const SizedBox(height: 16),
-                  _label('Nom de la boutique'),
-                  const SizedBox(height: 8),
-                  _input(_boutiqueCtrl, 'Ma Boutique Digitale', Icons.storefront_outlined, validator: (v) => _role == 'vendeur' && v!.isEmpty ? 'Requis' : null),
-                ],
-                const SizedBox(height: 32),
-
-                GestureDetector(
-                  onTap: _loading ? null : _register,
-                  child: Container(
-                    width: double.infinity, height: 56,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [kPrimary, kAccent]),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: kPrimary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+                    // Titre
+                    FadeInDown(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 200),
+                      child: const Text(
+                        'Inscription',
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.kLight, letterSpacing: -1),
+                      ),
                     ),
-                    child: Center(child: _loading
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Créer mon compte', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16))),
-                  ),
+                    const SizedBox(height: 8),
+                    FadeInDown(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 400),
+                      child: const Text(
+                        'Créez votre compte DigitalStore',
+                        style: TextStyle(fontSize: 14, color: AppColors.kBlueViolet, fontWeight: FontWeight.w400),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Role selector (en premier)
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 600),
+                      from: 30,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 20, bottom: 12),
+                            child: Text('Je suis', style: TextStyle(color: AppColors.kLight, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(child: _roleCard('client', 'Client', Icons.shopping_bag_outlined)),
+                              const SizedBox(width: 12),
+                              Expanded(child: _roleCard('vendeur', 'Vendeur', Icons.storefront_outlined)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Nom utilisateur
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 700),
+                      from: 30,
+                      child: _buildTextField(
+                        controller: _nomUtilisateurCtrl,
+                        label: 'Nom d\'utilisateur',
+                        icon: Icons.person_outline_rounded,
+                        validator: (v) => v == null || v.isEmpty ? 'Nom requis' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Nom boutique (si vendeur)
+                    if (_selectedRole == 'vendeur')
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 800),
+                        delay: const Duration(milliseconds: 750),
+                        from: 30,
+                        child: _buildTextField(
+                          controller: _nomBoutiqueCtrl,
+                          label: 'Nom de la boutique',
+                          icon: Icons.storefront_rounded,
+                          validator: (v) => v == null || v.isEmpty ? 'Nom de boutique requis' : null,
+                        ),
+                      ),
+                    if (_selectedRole == 'vendeur') const SizedBox(height: 16),
+
+                    // Email
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 800),
+                      from: 30,
+                      child: _buildTextField(
+                        controller: _emailCtrl,
+                        label: 'Email',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) => v == null || !v.contains('@') ? 'Email invalide' : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 900),
+                      from: 30,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(left: 20, bottom: 8),
+                            child: Text('Mot de passe', style: TextStyle(color: AppColors.kLight, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ),
+                          Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+                            ),
+                            child: TextFormField(
+                              controller: _passwordCtrl,
+                              obscureText: _obscurePassword,
+                              validator: (v) => v == null || v.length < 6 ? 'Min 6 caractères' : null,
+                              style: const TextStyle(color: Colors.black87, fontSize: 15),
+                              decoration: InputDecoration(
+                                hintText: '••••••••',
+                                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 18, letterSpacing: 2),
+                                prefixIcon: const Padding(
+                                  padding: EdgeInsets.only(left: 20, right: 12),
+                                  child: Icon(Icons.lock_outline_rounded, color: AppColors.kBlueViolet, size: 22),
+                                ),
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: IconButton(
+                                    icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey.shade400, size: 22),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // Bouton inscription
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      delay: const Duration(milliseconds: 1000),
+                      from: 30,
+                      child: GestureDetector(
+                        onTap: _loading ? null : _register,
+                        child: AnimatedScale(
+                          scale: _loading ? 0.95 : 1.0,
+                          duration: const Duration(milliseconds: 150),
+                          child: Container(
+                            width: double.infinity, height: 56,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.buttonGradient,
+                              borderRadius: BorderRadius.circular(28),
+                              boxShadow: AppColors.glowShadow(0.4),
+                            ),
+                            child: Center(
+                              child: _loading
+                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppColors.kLight, strokeWidth: 2.5))
+                                  : const Text('S\'inscrire', style: TextStyle(color: AppColors.kLight, fontWeight: FontWeight.w700, fontSize: 16)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Login link
+                    FadeIn(
+                      delay: const Duration(milliseconds: 1200),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Déjà un compte ? ', style: TextStyle(color: AppColors.kBlueViolet, fontSize: 14)),
+                          GestureDetector(
+                            onTap: () => context.go('/login'),
+                            child: const Text('Se connecter', style: TextStyle(color: AppColors.kLight, fontWeight: FontWeight.w700, fontSize: 14)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                Center(child: GestureDetector(
-                  onTap: () => context.go('/login'),
-                  child: RichText(text: TextSpan(
-                    text: 'Déjà un compte ? ',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                    children: const [TextSpan(text: 'Se connecter', style: TextStyle(color: kPrimary, fontWeight: FontWeight.w700))],
-                  )),
-                )),
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
           ),
         ),
@@ -162,40 +305,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _label(String t) => Text(t, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151)));
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 20, bottom: 8),
+          child: Text(label, style: const TextStyle(color: AppColors.kLight, fontSize: 13, fontWeight: FontWeight.w500)),
+        ),
+        Container(
+          height: 56,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            validator: validator,
+            style: const TextStyle(color: Colors.black87, fontSize: 15),
+            decoration: InputDecoration(
+              hintText: label,
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 20, right: 12),
+                child: Icon(icon, color: AppColors.kBlueViolet, size: 22),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
-  Widget _input(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboard, String? Function(String?)? validator}) =>
-    TextFormField(
-      controller: ctrl, keyboardType: keyboard, validator: validator,
-      style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A)),
-      decoration: InputDecoration(
-        hintText: hint, hintStyle: TextStyle(color: Colors.grey.shade400),
-        prefixIcon: Icon(icon, color: Colors.grey.shade400, size: 20),
-        filled: true, fillColor: const Color(0xFFF8FAFC),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kPrimary, width: 1.5)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  Widget _roleCard(String role, String label, IconData icon) {
+    final isSelected = _selectedRole == role;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRole = role),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppColors.buttonGradient : null,
+          color: isSelected ? null : AppColors.kDark.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.kPrimary : AppColors.kBlueViolet.withOpacity(0.3),
+            width: isSelected ? 2 : 1.5,
+          ),
+          boxShadow: isSelected ? AppColors.glowShadow(0.3) : [],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? AppColors.kLight : AppColors.kBlueViolet, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.kLight : AppColors.kBlueViolet,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
-
-  Widget _roleCard(String key, String label, IconData icon, Color color) => Expanded(
-    child: GestureDetector(
-      onTap: () => setState(() => _role = key),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: _role == key ? color.withOpacity(0.08) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _role == key ? color : Colors.grey.shade200, width: _role == key ? 1.5 : 1),
-        ),
-        child: Column(children: [
-          Icon(icon, color: _role == key ? color : Colors.grey.shade400, size: 28),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _role == key ? color : Colors.grey.shade500)),
-        ]),
-      ),
-    ),
-  );
+  }
 }
