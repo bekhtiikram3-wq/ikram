@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: const BoxDecoration(gradient: AppColors.bgGradient),
         child: SafeArea(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.kLight))
+              ? const Center(child: CircularProgressIndicator(color: AppColors.kDark))
               : RefreshIndicator(
                   onRefresh: _loadData,
                   color: AppColors.kPrimary,
@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: FadeInDown(
                           duration: const Duration(milliseconds: 600),
                           child: Container(
-                            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 8, 20, 20),
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                             decoration: BoxDecoration(
                               gradient: AppColors.headerGradient,
                               borderRadius: const BorderRadius.only(
@@ -129,16 +129,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Bonjour 👋', style: AppColors.bodyMedium()),
+                                        Text('Bonjour 👋', style: AppColors.bodyMedium(color: Colors.white)),
                                         const SizedBox(height: 4),
                                         Text(
                                           _userData?['nom'] ?? 'Client',
-                                          style: AppColors.headingMedium(),
+                                          style: AppColors.headingMedium(color: Colors.white),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
                                           DateFormat('EEEE d MMMM yyyy', 'fr_FR').format(DateTime.now()),
-                                          style: AppColors.labelSmall(color: AppColors.kBlueViolet.withOpacity(0.7)),
+                                          style: AppColors.labelSmall(color: Colors.white.withOpacity(0.8)),
                                         ),
                                       ],
                                     ),
@@ -158,15 +158,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                                     decoration: BoxDecoration(
-                                      color: AppColors.kDark.withOpacity(0.5),
+                                      color: Colors.white.withOpacity(0.9),
                                       borderRadius: BorderRadius.circular(50),
-                                      border: Border.all(color: AppColors.kBlueViolet.withOpacity(0.3), width: 1.5),
+                                      border: Border.all(color: AppColors.kDark.withOpacity(0.2), width: 1.5),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.search_rounded, color: AppColors.kBlueViolet.withOpacity(0.7), size: 22),
+                                        Icon(Icons.search_rounded, color: Colors.grey.shade600, size: 22),
                                         const SizedBox(width: 12),
-                                        Text('Rechercher des produits...', style: AppColors.bodyMedium(color: AppColors.kBlueViolet.withOpacity(0.7))),
+                                        Text('Rechercher des produits...', style: AppColors.bodyMedium(color: Colors.grey.shade600)),
                                       ],
                                     ),
                                   ),
@@ -265,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       width: isActive ? 24 : 8,
                                       height: 8,
                                       decoration: BoxDecoration(
-                                        color: isActive ? AppColors.kPrimary : AppColors.kBlueViolet.withOpacity(0.3),
+                                        color: isActive ? AppColors.kDark : AppColors.kDark.withOpacity(0.3),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                     );
@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Catégories', style: AppColors.headingMedium(color: AppColors.kLight).copyWith(fontSize: 18)),
+                                Text('Catégories', style: AppColors.headingMedium(color: Colors.black).copyWith(fontSize: 18)),
                                 const SizedBox(height: 14),
                                 Row(
                                   children: [
@@ -314,10 +314,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Nouveautés', style: AppColors.headingMedium(color: AppColors.kLight).copyWith(fontSize: 18)),
+                                Text('Nouveautés', style: AppColors.headingMedium(color: Colors.black).copyWith(fontSize: 18)),
                                 GestureDetector(
                                   onTap: () => context.go('/catalogue'),
-                                  child: Text('Voir tout', style: AppColors.labelSmall(color: AppColors.kBlueViolet)),
+                                  child: Text('Voir tout', style: AppColors.labelSmall(color: Colors.black)),
                                 ),
                               ],
                             ),
@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         sliver: _produits.isEmpty
                             ? SliverToBoxAdapter(
                                 child: Center(
-                                  child: Text('Aucun produit disponible', style: AppColors.bodyMedium(color: AppColors.kBlueViolet.withOpacity(0.6))),
+                                  child: Text('Aucun produit disponible', style: AppColors.bodyMedium(color: Colors.black54)),
                                 ),
                               )
                             : SliverList(
@@ -364,11 +364,11 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppColors.kDark.withOpacity(0.5),
+          color: Colors.white.withOpacity(0.2),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.kBlueViolet.withOpacity(0.3)),
+          border: Border.all(color: Colors.white.withOpacity(0.3)),
         ),
-        child: Icon(icon, color: AppColors.kLight, size: 20),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -385,9 +385,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.kLight, size: 28),
+            Icon(icon, color: Colors.white, size: 28),
             const SizedBox(height: 6),
-            Text(label, style: AppColors.labelSmall(color: AppColors.kLight)),
+            Text(label, style: AppColors.labelSmall(color: Colors.black)),
           ],
         ),
       ),
@@ -401,12 +401,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppColors.kDark.withOpacity(0.6),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.kBlueViolet.withOpacity(0.3), width: 1.5),
+          border: Border.all(color: AppColors.kDark.withOpacity(0.1), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.kDeepDark.withOpacity(0.4),
+              color: AppColors.kDark.withOpacity(0.15),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -425,17 +425,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 110,
                       height: 110,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: AppColors.kDark),
+                      placeholder: (_, __) => Container(color: Colors.grey.shade200),
                       errorWidget: (_, __, ___) => Container(
-                        color: AppColors.kDark,
-                        child: const Icon(Icons.image_not_supported_outlined, color: AppColors.kBlueViolet),
+                        color: Colors.grey.shade200,
+                        child: Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400),
                       ),
                     )
                   : Container(
                       width: 110,
                       height: 110,
-                      color: AppColors.kDark,
-                      child: const Icon(Icons.image_not_supported_outlined, color: AppColors.kBlueViolet, size: 32),
+                      color: Colors.grey.shade200,
+                      child: Icon(Icons.image_not_supported_outlined, color: Colors.grey.shade400, size: 32),
                     ),
             ),
             const SizedBox(width: 14),
@@ -447,14 +447,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       produit['titre'] ?? '',
-                      style: AppColors.bodyLarge(color: AppColors.kLight).copyWith(fontWeight: FontWeight.w700),
+                      style: AppColors.bodyLarge(color: Colors.black).copyWith(fontWeight: FontWeight.w700),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       vendeur?['nom_boutique'] ?? '',
-                      style: AppColors.labelSmall(color: AppColors.kBlueViolet.withOpacity(0.8)),
+                      style: AppColors.labelSmall(color: Colors.black54),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -467,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Text(
                             '${produit['prix_dzd'] ?? 0} DZD',
-                            style: AppColors.labelSmall(color: AppColors.kLight).copyWith(fontWeight: FontWeight.w700),
+                            style: AppColors.labelSmall(color: Colors.white).copyWith(fontWeight: FontWeight.w700),
                           ),
                         ),
                         const Spacer(),
@@ -475,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 4),
                         Text(
                           '${produit['note_moyenne'] ?? 0}',
-                          style: AppColors.labelSmall(color: AppColors.kLight),
+                          style: AppColors.labelSmall(color: Colors.black),
                         ),
                         const SizedBox(width: 12),
                       ],

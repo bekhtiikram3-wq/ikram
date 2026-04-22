@@ -13,6 +13,9 @@ import 'screens/client/panier_screen.dart';
 import 'screens/client/bibliotheque_screen.dart';
 import 'screens/client/profil_screen.dart';
 import 'screens/client/langue_screen.dart';
+import 'screens/client/wishlist_screen.dart';
+import 'screens/client/aide_support_screen.dart';
+import 'screens/client/confidentialite_screen.dart';
 import 'screens/vendeur/vendeur_dashboard_screen.dart';
 import 'screens/vendeur/mes_produits_screen.dart';
 import 'screens/vendeur/ajouter_produit_screen.dart';
@@ -45,6 +48,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login',      builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',   builder: (_, __) => const RegisterScreen()),
 
+      // ── Screens standalone (sans bottom nav) ──
+      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/messages',      builder: (_, __) => const MessagesScreen()),
+      GoRoute(path: '/wishlist',      builder: (_, __) => const WishlistScreen()),
+      GoRoute(path: '/aide',          builder: (_, __) => const AideSupportScreen()),
+      GoRoute(path: '/confidentialite', builder: (_, __) => const ConfidentialiteScreen()),
+      GoRoute(path: '/langue',        builder: (_, __) => const LangueScreen()),
+
       // ── Client ──
       ShellRoute(
         builder: (context, state, child) => _ClientShell(child: child),
@@ -55,9 +66,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/panier',        builder: (_, __) => const PanierScreen()),
           GoRoute(path: '/bibliotheque',  builder: (_, __) => const BibliothequeScreen()),
           GoRoute(path: '/profil',        builder: (_, __) => const ProfilScreen()),
-          GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: '/messages',      builder: (_, __) => const MessagesScreen()),
-          GoRoute(path: '/langue',        builder: (_, __) => const LangueScreen()),
         ],
       ),
 
@@ -71,8 +79,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/vendeur/classement', builder: (_, __) => const ClassementScreen()),
           GoRoute(path: '/vendeur/retraits',   builder: (_, __) => const RetraitsScreen()),
           GoRoute(path: '/vendeur/profil',     builder: (_, __) => const ProfilVendeurScreen()),
-          GoRoute(path: '/notifications',      builder: (_, __) => const NotificationsScreen()),
-          GoRoute(path: '/messages',           builder: (_, __) => const MessagesScreen()),
         ],
       ),
 

@@ -181,7 +181,7 @@ class _CatalogueScreenState extends State<CatalogueScreen> {
                           child: Text(
                             cat,
                             style: AppColors.bodyMedium(
-                              color: isSelected ? AppColors.kLight : AppColors.kBlueViolet,
+                              color: isSelected ? Colors.white : Colors.black,
                             ).copyWith(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600),
                           ),
                         ),

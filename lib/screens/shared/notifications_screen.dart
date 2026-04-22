@@ -1,123 +1,302 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import '../../app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> _notifs = [];
+  List<Map<String, dynamic>> _notifications = [];
   bool _loading = true;
 
-  static const Color kBlue1 = Color(0xFF1565C0);
-  static const Color kBlue2 = Color(0xFF1E88E5);
-
   @override
-  void initState() { super.initState(); _loadNotifs(); }
+  void initState() {
+    super.initState();
+    timeago.setLocaleMessages('fr', timeago.FrMessages());
+    _loadNotifications();
+  }
 
-  Future<void> _loadNotifs() async {
+  Future<void> _loadNotifications() async {
     try {
-      final data = await supabase.rpc('get_mes_notifications');
-      if (mounted) setState(() { _notifs = List<Map<String, dynamic>>.from(data); _loading = false; });
-    } catch (e) { if (mounted) setState(() => _loading = false); }
-  }
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        final notifications = [
+          {
+            'id': '1',
+            'type': 'commande',
+            'titre': 'Commande confirmée',
+            'message': 'Votre commande #12345 a été confirmée',
+            'lu': false,
+            'created_at': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+          },
+          {
+            'id': '2',
+            'type': 'produit',
+            'titre': 'Nouveau produit disponible',
+            'message': 'Un nouveau template UI/UX est disponible',
+            'lu': false,
+            'created_at': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+          },
+          {
+            'id': '3',
+            'type': 'promotion',
+            'titre': 'Promotion -30%',
+            'message': 'Profitez de -30% sur tous les ebooks ce weekend',
+            'lu': true,
+            'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          },
+          {
+            'id': '4',
+            'type': 'systeme',
+            'titre': 'Mise à jour disponible',
+            'message': 'Une nouvelle version de l\'app est disponible',
+            'lu': true,
+            'created_at': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+          },
+        ];
 
-  IconData _iconForType(String? type) {
-    switch (type) {
-      case 'nouvelle_vente': return Icons.shopping_bag;
-      case 'paiement_succes': return Icons.check_circle;
-      case 'paiement_echec': return Icons.cancel;
-      case 'produit_valide': return Icons.verified;
-      case 'produit_rejete': return Icons.block;
-      case 'nouveau_avis': return Icons.star;
-      case 'message': return Icons.message;
-      case 'classement_monte': return Icons.trending_up;
-      case 'badge_top10': return Icons.emoji_events;
-      default: return Icons.notifications;
+        if (mounted) {
+          setState(() {
+            _notifications = notifications;
+            _loading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Color _colorForType(String? type) {
+  IconData _getIcon(String type) {
     switch (type) {
-      case 'nouvelle_vente': return Colors.green;
-      case 'paiement_succes': return Colors.green;
-      case 'paiement_echec': return Colors.red;
-      case 'produit_valide': return kBlue1;
-      case 'produit_rejete': return Colors.red;
-      case 'nouveau_avis': return Colors.amber;
-      case 'classement_monte': return Colors.orange;
-      case 'badge_top10': return Colors.purple;
-      default: return kBlue2;
+      case 'commande': return Icons.shopping_bag_rounded;
+      case 'produit': return Icons.new_releases_rounded;
+      case 'promotion': return Icons.local_offer_rounded;
+      case 'systeme': return Icons.info_rounded;
+      default: return Icons.notifications_rounded;
     }
+  }
+
+  Color _getColor(String type) {
+    switch (type) {
+      case 'commande': return AppColors.kDark;
+      case 'produit': return AppColors.kPrimary;
+      case 'promotion': return Colors.orange.shade600;
+      case 'systeme': return Colors.blue.shade600;
+      default: return AppColors.kDark;
+    }
+  }
+
+  void _marquerCommeLu(String id) {
+    setState(() {
+      final index = _notifications.indexWhere((n) => n['id'] == id);
+      if (index != -1) {
+        _notifications[index]['lu'] = true;
+      }
+    });
+  }
+
+  void _marquerToutCommeLu() {
+    setState(() {
+      for (var notif in _notifications) {
+        notif['lu'] = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
-      appBar: AppBar(
-        backgroundColor: kBlue1,
-        title: const Text('Notifications', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-        actions: [
-          TextButton(
-            onPressed: () async { await supabase.rpc('marquer_toutes_lues'); _loadNotifs(); },
-            child: const Text('Tout lire', style: TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _notifs.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 100, height: 100, decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle), child: const Icon(Icons.notifications_none, size: 50, color: kBlue2)),
-                  const SizedBox(height: 16),
-                  const Text('Aucune notification', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                ]))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _notifs.length,
-                  itemBuilder: (_, i) {
-                    final n = _notifs[i];
-                    final color = _colorForType(n['type']);
-                    return GestureDetector(
-                      onTap: () async { await supabase.rpc('marquer_notif_lue', params: {'p_notif_id': n['id']}); _loadNotifs(); },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: n['est_lu'] == true ? Colors.white : const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: n['est_lu'] == true ? Colors.transparent : kBlue1.withOpacity(0.3)),
+    final nonLues = _notifications.where((n) => n['lu'] == false).length;
+
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/profil');
+        return false;
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+          child: SafeArea(
+            child: Column(
+              children: [
+                FadeInDown(
+                  duration: const Duration(milliseconds: 600),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 46, height: 46,
-                              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                              child: Icon(_iconForType(n['type']), color: color, size: 22),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded, size: 20, color: Colors.black),
+                            onPressed: () => context.go('/profil'),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Notifications', style: AppColors.headingMedium(color: Colors.black).copyWith(fontSize: 20)),
+                              if (nonLues > 0)
+                                Text('$nonLues non lue${nonLues > 1 ? 's' : ''}', style: AppColors.labelSmall(color: AppColors.kDark)),
+                            ],
+                          ),
+                        ),
+                        if (nonLues > 0)
+                          TextButton(
+                            onPressed: _marquerToutCommeLu,
+                            child: Text('Tout marquer', style: AppColors.labelSmall(color: AppColors.kDark)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator(color: AppColors.kDark))
+                      : _notifications.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.black26),
+                                  const SizedBox(height: 16),
+                                  Text('Aucune notification', style: AppColors.bodyLarge(color: Colors.black54)),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadNotifications,
+                              color: AppColors.kDark,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(20),
+                                itemCount: _notifications.length,
+                                itemBuilder: (context, index) {
+                                  final notif = _notifications[index];
+                                  return FadeInUp(
+                                    duration: const Duration(milliseconds: 600),
+                                    delay: Duration(milliseconds: 100 * index),
+                                    child: _notificationCard(notif),
+                                  );
+                                },
+                              ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(n['titre'] ?? '', style: TextStyle(fontWeight: n['est_lu'] == true ? FontWeight.normal : FontWeight.bold, color: const Color(0xFF1A237E), fontSize: 14)),
-                                const SizedBox(height: 3),
-                                Text(n['message'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12), maxLines: 2),
-                              ],
-                            )),
-                            if (n['est_lu'] != true)
-                              Container(width: 8, height: 8, decoration: const BoxDecoration(color: kBlue1, shape: BoxShape.circle)),
-                          ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _notificationCard(Map<String, dynamic> notif) {
+    final isLu = notif['lu'] == true;
+    final type = notif['type'] ?? 'systeme';
+    final date = DateTime.parse(notif['created_at']);
+
+    return GestureDetector(
+      onTap: () => _marquerCommeLu(notif['id']),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isLu ? Colors.white : AppColors.kPrimary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isLu ? Colors.grey.shade200 : AppColors.kPrimary.withOpacity(0.2),
+            width: isLu ? 1 : 2,
+          ),
+          boxShadow: [
+            if (!isLu)
+              BoxShadow(
+                color: AppColors.kPrimary.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _getColor(type).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(_getIcon(type), color: _getColor(type), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notif['titre'] ?? '',
+                          style: AppColors.bodyLarge(color: Colors.black).copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
-                    );
-                  },
-                ),
+                      if (!isLu)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.kDark,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notif['message'] ?? '',
+                    style: AppColors.bodyMedium(color: Colors.black87),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    timeago.format(date, locale: 'fr'),
+                    style: AppColors.labelSmall(color: Colors.black45),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

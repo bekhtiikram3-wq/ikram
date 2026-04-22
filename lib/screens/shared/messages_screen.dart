@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import '../../app_colors.dart';
+import 'chat_detail_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
+
   @override
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
@@ -12,85 +18,286 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<Map<String, dynamic>> _conversations = [];
   bool _loading = true;
 
-  static const Color kBlue1 = Color(0xFF1565C0);
-  static const Color kBlue2 = Color(0xFF1E88E5);
-  static const Color kBlueBg = Color(0xFFE3F2FD);
-
   @override
-  void initState() { super.initState(); _loadConversations(); }
+  void initState() {
+    super.initState();
+    timeago.setLocaleMessages('fr', timeago.FrMessages());
+    _loadConversations();
+  }
 
   Future<void> _loadConversations() async {
     try {
-      final data = await supabase.rpc('get_mes_conversations');
-      if (mounted) setState(() { _conversations = List<Map<String, dynamic>>.from(data); _loading = false; });
-    } catch (e) { if (mounted) setState(() => _loading = false); }
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        final conversations = [
+          {
+            'id': '1',
+            'vendeur_id': 'v1',
+            'vendeur_nom': 'TechStore DZ',
+            'vendeur_avatar': null,
+            'dernier_message': 'Bonjour, votre produit est prêt à télécharger',
+            'non_lu': 2,
+            'timestamp': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+          },
+          {
+            'id': '2',
+            'vendeur_id': 'v2',
+            'vendeur_nom': 'DesignHub',
+            'vendeur_avatar': null,
+            'dernier_message': 'Merci pour votre achat !',
+            'non_lu': 0,
+            'timestamp': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+          },
+          {
+            'id': '3',
+            'vendeur_id': 'v3',
+            'vendeur_nom': 'CodeMasters',
+            'vendeur_avatar': null,
+            'dernier_message': 'Le fichier a été mis à jour',
+            'non_lu': 1,
+            'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+          },
+        ];
+
+        if (mounted) {
+          setState(() {
+            _conversations = conversations;
+            _loading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _ouvrirChat(String vendeurId, String vendeurNom) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatDetailScreen(
+          vendeurId: vendeurId,
+          vendeurNom: vendeurNom,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
-      appBar: AppBar(
-        backgroundColor: kBlue1,
-        title: const Text('Messages', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-        actions: [IconButton(icon: const Icon(Icons.edit_outlined, color: Colors.white), onPressed: () {})],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _conversations.isEmpty
-              ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 100, height: 100, decoration: const BoxDecoration(color: kBlueBg, shape: BoxShape.circle), child: const Icon(Icons.chat_bubble_outline, size: 50, color: kBlue2)),
-                  const SizedBox(height: 16),
-                  const Text('Aucune conversation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                  const SizedBox(height: 8),
-                  Text('Contactez un vendeur depuis une fiche produit', style: TextStyle(color: Colors.grey.shade500, fontSize: 13), textAlign: TextAlign.center),
-                ]))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _conversations.length,
-                  itemBuilder: (_, i) {
-                    final c = _conversations[i];
-                    final nonLus = (c['messages_non_lus'] ?? 0) as int;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), boxShadow: [BoxShadow(color: kBlue1.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 3))]),
-                      child: Row(children: [
-                        Stack(children: [
-                          Container(
-                            width: 50, height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [kBlue1, kBlue2]),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Center(child: Text(
-                              (c['interlocuteur_nom'] ?? 'U').substring(0, 1).toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                            )),
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/profil');
+        return false;
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+          child: SafeArea(
+            child: Column(
+              children: [
+                FadeInDown(
+                  duration: const Duration(milliseconds: 600),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          if (nonLus > 0)
-                            Positioned(
-                              right: 0, top: 0,
-                              child: Container(
-                                width: 18, height: 18,
-                                decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                                child: Center(child: Text('$nonLus', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back_rounded, size: 20, color: Colors.black),
+                            onPressed: () => context.go('/profil'),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Messages', style: AppColors.headingMedium(color: Colors.black).copyWith(fontSize: 20)),
+                              Text('${_conversations.length} conversation${_conversations.length > 1 ? 's' : ''}', style: AppColors.labelSmall(color: Colors.black54)),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chat_bubble_outline_rounded, color: AppColors.kDark, size: 28),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator(color: AppColors.kDark))
+                      : _conversations.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline_rounded, size: 80, color: Colors.black12),
+                                  const SizedBox(height: 16),
+                                  Text('Aucun message', style: AppColors.headingMedium(color: Colors.black54)),
+                                  const SizedBox(height: 8),
+                                  Text('Contactez un vendeur pour commencer', style: AppColors.bodyMedium(color: Colors.black38)),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadConversations,
+                              color: AppColors.kDark,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(20),
+                                itemCount: _conversations.length,
+                                itemBuilder: (context, index) {
+                                  final conv = _conversations[index];
+                                  return FadeInUp(
+                                    duration: const Duration(milliseconds: 600),
+                                    delay: Duration(milliseconds: 100 * index),
+                                    child: _conversationCard(conv),
+                                  );
+                                },
                               ),
                             ),
-                        ]),
-                        const SizedBox(width: 14),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(c['interlocuteur_nom'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E), fontSize: 14)),
-                          if (c['nom_boutique'] != null) Text(c['nom_boutique'], style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
-                          const SizedBox(height: 4),
-                          Text(c['dernier_message'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ])),
-                      ]),
-                    );
-                  },
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _conversationCard(Map<String, dynamic> conv) {
+    final nonLu = conv['non_lu'] as int? ?? 0;
+    final timestamp = DateTime.parse(conv['timestamp']);
+
+    return GestureDetector(
+      onTap: () => _ouvrirChat(conv['vendeur_id'], conv['vendeur_nom']),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: nonLu > 0 ? AppColors.kPrimary.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: nonLu > 0 ? AppColors.kPrimary.withOpacity(0.2) : Colors.grey.shade200,
+            width: nonLu > 0 ? 2 : 1,
+          ),
+          boxShadow: [
+            if (nonLu > 0)
+              BoxShadow(
+                color: AppColors.kPrimary.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.buttonGradient,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      (conv['vendeur_nom'] ?? 'V')[0].toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                if (nonLu > 0)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                      child: Center(
+                        child: Text(
+                          '$nonLu',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conv['vendeur_nom'] ?? '',
+                          style: AppColors.bodyLarge(color: Colors.black).copyWith(
+                            fontWeight: nonLu > 0 ? FontWeight.w800 : FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        timeago.format(timestamp, locale: 'fr'),
+                        style: AppColors.labelSmall(color: Colors.black45),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          conv['dernier_message'] ?? '',
+                          style: AppColors.bodyMedium(color: nonLu > 0 ? Colors.black87 : Colors.black54),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, color: Colors.black26, size: 24),
+          ],
+        ),
+      ),
     );
   }
 }

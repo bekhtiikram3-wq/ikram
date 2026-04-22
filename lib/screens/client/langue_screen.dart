@@ -1,173 +1,283 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:myapp/main.dart';
+import 'package:animate_do/animate_do.dart';
+import '../../app_colors.dart';
+import '../../main.dart';
 
 class LangueScreen extends StatefulWidget {
   const LangueScreen({super.key});
+
   @override
   State<LangueScreen> createState() => _LangueScreenState();
 }
 
 class _LangueScreenState extends State<LangueScreen> {
-  String _langueSelectee = 'fr';
-
-  static const kPrimary = Color(0xFF2563EB);
-  static const kAccent  = Color(0xFF7C3AED);
-  static const kBg      = Color(0xFFF8FAFC);
-
-  final List<Map<String, dynamic>> _langues = [
-    {'code': 'fr', 'nom': 'Français',  'drapeau': '🇫🇷', 'natif': 'Français'},
-    {'code': 'ar', 'nom': 'العربية',   'drapeau': '🇩🇿', 'natif': 'اللغة العربية'},
-    {'code': 'en', 'nom': 'English',   'drapeau': '🇬🇧', 'natif': 'English'},
-  ];
+  String _selectedLanguage = 'fr';
 
   @override
   void initState() {
     super.initState();
-    _langueSelectee = localeNotifier.value.languageCode;
+    _selectedLanguage = localeNotifier.value.languageCode;
   }
 
-  Future<void> _confirmer() async {
-    // Changer la langue immédiatement
-    await localeNotifier.setLocale(_langueSelectee);
+  Future<void> _changeLanguage(String code) async {
+    setState(() => _selectedLanguage = code);
+    await localeNotifier.setLocale(code);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_getSuccessMessage(code)),
+          backgroundColor: AppColors.kDark,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
 
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        _langueSelectee == 'fr' ? '✓ Langue : Français' :
-        _langueSelectee == 'ar' ? '✓ اللغة : العربية' :
-        '✓ Language: English',
-      ),
-      backgroundColor: Colors.green.shade400,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
-
-    context.pop();
+  String _getSuccessMessage(String code) {
+    switch (code) {
+      case 'fr': return 'Langue changée en Français';
+      case 'ar': return 'تم تغيير اللغة إلى العربية';
+      case 'en': return 'Language changed to English';
+      default: return 'Langue changée';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBg,
-      body: Column(children: [
-        Container(
-          color: Colors.white,
-          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 20),
-          child: Row(children: [
-            GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: kBg,
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: Color(0xFF0F172A)),
-              ),
-            ),
-            const SizedBox(width: 14),
-            const Text('Langue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          ]),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: kPrimary.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: kPrimary.withOpacity(0.15)),
-                ),
-                child: Row(children: [
-                  const Icon(Icons.info_outline_rounded, color: kPrimary, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(
-                    'Le changement s\'applique immédiatement.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                  )),
-                ]),
-              ),
-              const SizedBox(height: 24),
-              const Text('Choisissez une langue',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF374151))),
-              const SizedBox(height: 12),
-              ...(_langues.map((l) {
-                final isSelected = _langueSelectee == l['code'];
-                return GestureDetector(
-                  onTap: () => setState(() => _langueSelectee = l['code'] as String),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isSelected ? kPrimary.withOpacity(0.06) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected ? kPrimary : Colors.grey.shade200,
-                        width: isSelected ? 1.5 : 1,
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              FadeInDown(
+                duration: const Duration(milliseconds: 600),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    child: Row(children: [
+                    ],
+                  ),
+                  child: Row(
+                    children: [
                       Container(
-                        width: 52, height: 52,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: isSelected ? kPrimary.withOpacity(0.1) : kBg,
-                          borderRadius: BorderRadius.circular(14),
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Center(child: Text(l['drapeau'] as String, style: const TextStyle(fontSize: 26))),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_rounded, size: 20, color: Colors.black),
+                          onPressed: () => context.go('/profil'),
+                          padding: EdgeInsets.zero,
+                        ),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(l['nom'] as String, style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                          color: isSelected ? kPrimary : const Color(0xFF0F172A),
-                        )),
-                        Text(l['natif'] as String, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                      ])),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 24, height: 24,
-                        decoration: BoxDecoration(
-                          color: isSelected ? kPrimary : Colors.transparent,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? kPrimary : Colors.grey.shade300,
-                            width: 1.5,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text('Langue', style: AppColors.headingMedium(color: Colors.black).copyWith(fontSize: 20)),
+                      ),
+                      Icon(Icons.language_rounded, color: AppColors.kDark, size: 28),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Contenu
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Info
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 100),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.kPrimary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.kPrimary.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: AppColors.kDark, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Choisissez votre langue préférée',
+                                  style: AppColors.bodyMedium(color: Colors.black87),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: isSelected ? const Icon(Icons.check_rounded, color: Colors.white, size: 14) : null,
                       ),
-                    ]),
-                  ),
-                );
-              })),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _confirmer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 4,
-                  ),
-                  child: const Text(
-                    'Confirmer',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+
+                      const SizedBox(height: 32),
+
+                      // Liste langues
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 600),
+                        delay: const Duration(milliseconds: 200),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              _languageOption(
+                                'Français',
+                                'French',
+                                '🇫🇷',
+                                'fr',
+                              ),
+                              Divider(height: 1, color: Colors.grey.shade200),
+                              _languageOption(
+                                'العربية',
+                                'Arabic',
+                                '🇩🇿',
+                                'ar',
+                              ),
+                              Divider(height: 1, color: Colors.grey.shade200),
+                              _languageOption(
+                                'English',
+                                'English',
+                                '🇬🇧',
+                                'en',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Note RTL
+                      if (_selectedLanguage == 'ar')
+                        FadeInUp(
+                          duration: const Duration(milliseconds: 600),
+                          delay: const Duration(milliseconds: 300),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.translate_rounded, color: Colors.orange.shade700, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'L\'interface sera en mode RTL (de droite à gauche)',
+                                    style: AppColors.bodyMedium(color: Colors.orange.shade900).copyWith(fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
-            ]),
+            ],
           ),
         ),
-      ]),
+      ),
+    );
+  }
+
+  Widget _languageOption(String nom, String nomEn, String flag, String code) {
+    final isSelected = _selectedLanguage == code;
+    
+    return GestureDetector(
+      onTap: () => _changeLanguage(code),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.kPrimary.withOpacity(0.05) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.kDark.withOpacity(0.1) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(
+                  flag,
+                  style: const TextStyle(fontSize: 28),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nom,
+                    style: AppColors.bodyLarge(color: Colors.black).copyWith(
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    nomEn,
+                    style: AppColors.labelSmall(color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: AppColors.buttonGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+              )
+            else
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300, width: 2),
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

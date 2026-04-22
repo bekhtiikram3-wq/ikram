@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import '../../app_colors.dart';
 
 class ProduitDetailScreen extends StatefulWidget {
   final String produitId;
-  const ProduitDetailScreen({super.key, required this.produitId});
+
+  const ProduitDetailScreen({
+    super.key,
+    required this.produitId,
+  });
+
   @override
   State<ProduitDetailScreen> createState() => _ProduitDetailScreenState();
 }
@@ -13,260 +23,574 @@ class _ProduitDetailScreenState extends State<ProduitDetailScreen> {
   final supabase = Supabase.instance.client;
   Map<String, dynamic>? _produit;
   bool _loading = true;
-  bool _dansWishlist = false;
-  bool _achete = false;
-
-  static const Color kBlue1 = Color(0xFF1565C0);
-  static const Color kBlue2 = Color(0xFF1E88E5);
-  static const Color kBlueBg = Color(0xFFE3F2FD);
+  bool _isFavorite = false;
+  int _selectedImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _loadProduit();
-    _checkWishlist();
-  }
-
-  Future<void> _checkWishlist() async {
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-      final data = await supabase
-          .from('wishlist')
-          .select('id')
-          .eq('client_id', userId)
-          .eq('produit_id', widget.produitId)
-          .maybeSingle();
-      if (mounted) setState(() => _dansWishlist = data != null);
-    } catch (_) {}
-  }
-
-  Future<void> _toggleWishlist() async {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return;
-    try {
-      if (_dansWishlist) {
-        await supabase.from('wishlist')
-            .delete()
-            .eq('client_id', userId)
-            .eq('produit_id', widget.produitId);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Retiré de la wishlist'),
-          backgroundColor: Colors.grey.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
-      } else {
-        await supabase.from('wishlist').insert({
-          'client_id': userId,
-          'produit_id': widget.produitId,
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Ajouté à la wishlist ❤️'),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ));
-      }
-      setState(() => _dansWishlist = !_dansWishlist);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(e.toString()),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
   }
 
   Future<void> _loadProduit() async {
     try {
-      final data = await supabase.rpc('get_produit_details', params: {'p_produit_id': widget.produitId});
-      if (mounted) setState(() { _produit = data; _loading = false; });
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      final produit = {
+        'id': widget.produitId,
+        'titre': 'Formation Complete UI/UX Design 2024',
+        'description': 'Apprenez le design d\'interface et d\'expérience utilisateur de A à Z. Cette formation complète couvre Figma, Adobe XD, les principes de design, le prototypage, les tests utilisateurs et bien plus encore.\n\nCe que vous allez apprendre :\n• Maîtriser Figma et Adobe XD\n• Créer des wireframes professionnels\n• Concevoir des interfaces modernes\n• Réaliser des prototypes interactifs\n• Conduire des tests utilisateurs\n• Appliquer les principes UX\n\nInclus :\n✓ 12 heures de vidéo\n✓ 50+ ressources téléchargeables\n✓ Certificat de completion\n✓ Accès à vie',
+        'prix_dzd': 4500,
+        'prix_original_dzd': 8900,
+        'categorie': 'Formation',
+        'note_moyenne': 4.8,
+        'nombre_avis': 127,
+        'nombre_ventes': 523,
+        'images': [
+          'https://picsum.photos/800/600?random=1',
+          'https://picsum.photos/800/600?random=2',
+          'https://picsum.photos/800/600?random=3',
+        ],
+        'type_fichier': 'video',
+        'taille_fichier': '2.5 GB',
+        'vendeur': {
+          'id': 'v1',
+          'nom_boutique': 'DesignPro Academy',
+          'note_moyenne': 4.9,
+          'total_ventes': 1200,
+        },
+        'specifications': [
+          {'titre': 'Format', 'valeur': 'Vidéo MP4'},
+          {'titre': 'Durée totale', 'valeur': '12 heures'},
+          {'titre': 'Niveau', 'valeur': 'Débutant à Avancé'},
+          {'titre': 'Langue', 'valeur': 'Français'},
+          {'titre': 'Dernière mise à jour', 'valeur': 'Mars 2024'},
+        ],
+      };
+
+      if (mounted) {
+        setState(() {
+          _produit = produit;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
-  Future<void> _ajouterPanier() async {
+  Future<void> _ajouterAuPanier() async {
     try {
-      await supabase.rpc('ajouter_au_panier', params: {'p_produit_id': widget.produitId});
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Ajouté au panier !'), backgroundColor: kBlue1, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_produit == null) return const Scaffold(body: Center(child: Text('Produit introuvable')));
-
-    final p = _produit!['produit'] as Map<String, dynamic>? ?? {};
-    final v = _produit!['vendeur'] as Map<String, dynamic>? ?? {};
-    final tags = _produit!['tags'] as List? ?? [];
-    final avis = _produit!['avis_recent'] as List? ?? [];
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            backgroundColor: kBlue1,
-            leading: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.arrow_back, color: kBlue1),
-              ),
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Récupérer panier actuel
+      final panierJson = prefs.getString('panier') ?? '[]';
+      final List<dynamic> panier = jsonDecode(panierJson);
+      
+      // Vérifier si déjà dans le panier
+      final dejaPresent = panier.any((item) => item['produit']['id'] == _produit!['id']);
+      
+      if (dejaPresent) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Ce produit est déjà dans votre panier'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 3),
             ),
-            actions: [
-              GestureDetector(
-                onTap: _toggleWishlist,
-                child: Container(
-                  margin: const EdgeInsets.all(8),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(
-                    _dansWishlist ? Icons.favorite : Icons.favorite_border,
-                    color: _dansWishlist ? Colors.red : kBlue1,
+          );
+        }
+        return;
+      }
+      
+      // Ajouter le produit
+      panier.add({
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'produit': _produit,
+        'quantite': 1,
+      });
+      
+      // Sauvegarder
+      await prefs.setString('panier', jsonEncode(panier));
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('✓ Ajouté au panier !', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                      Text('${_produit!['titre']}', style: const TextStyle(fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
                   ),
                 ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: p['image_couverture'] != null
-                  ? Image.network(p['image_couverture'], fit: BoxFit.cover)
-                  : Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [kBlue1, kBlue2], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      ),
-                      child: Center(child: Icon(
-                        p['categorie_type'] == 'ebook' ? Icons.menu_book_rounded : p['categorie_type'] == 'template' ? Icons.palette_rounded : Icons.code_rounded,
-                        color: Colors.white, size: 80,
-                      )),
-                    ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 6),
+            action: SnackBarAction(
+              label: 'VOIR',
+              textColor: Colors.white,
+              onPressed: () => context.go('/panier'),
             ),
           ),
-
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: const BoxDecoration(color: Color(0xFFF0F4FF), borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(6)),
-                      child: Text(p['categorie_type']?.toString().toUpperCase() ?? '', style: const TextStyle(color: kBlue1, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(p['titre'] ?? '', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      _statBadge(Icons.star, '${p['note_moyenne'] ?? 0}', Colors.amber),
-                      const SizedBox(width: 12),
-                      _statBadge(Icons.shopping_bag_outlined, '${p['nombre_ventes'] ?? 0} ventes', kBlue2),
-                      const SizedBox(width: 12),
-                      _statBadge(Icons.comment_outlined, '${p['nombre_avis'] ?? 0} avis', Colors.green),
-                    ]),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-                      child: Row(children: [
-                        Container(width: 44, height: 44, decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.store, color: kBlue1)),
-                        const SizedBox(width: 12),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(v['nom_boutique'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                          Row(children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 14),
-                            Text(' ${v['note_moyenne'] ?? 0} · ${v['total_ventes'] ?? 0} ventes', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                            if (v['est_verifie'] == true) ...[const SizedBox(width: 6), const Icon(Icons.verified, color: Colors.blue, size: 14)],
-                          ]),
-                        ])),
-                      ]),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                    const SizedBox(height: 8),
-                    Text(p['description'] ?? '', style: TextStyle(color: Colors.grey.shade700, height: 1.6, fontSize: 14)),
-                    const SizedBox(height: 16),
-                    if (tags.isNotEmpty) ...[
-                      const Text('Tags', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 8, runSpacing: 6, children: tags.map((t) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: kBlueBg, borderRadius: BorderRadius.circular(20)),
-                        child: Text('#$t', style: const TextStyle(color: kBlue1, fontSize: 12, fontWeight: FontWeight.w600)),
-                      )).toList()),
-                      const SizedBox(height: 16),
-                    ],
-                    if (avis.isNotEmpty) ...[
-                      const Text('Avis récents', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1A237E))),
-                      const SizedBox(height: 8),
-                      ...avis.take(3).map((a) => _buildAvis(a)),
-                    ],
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-        ],
-      ),
+        );
+      }
+    }
+  }
 
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: kBlue1.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))]),
-        child: Row(children: [
-          Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Prix', style: TextStyle(color: Colors.grey, fontSize: 12)),
-            Text('${p['prix_dzd'] ?? 0} DZD', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBlue1)),
-          ]),
-          const SizedBox(width: 16),
-          Expanded(child: ElevatedButton(
-            onPressed: _ajouterPanier,
-            style: ElevatedButton.styleFrom(backgroundColor: kBlue1, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-            child: const Text('Ajouter au panier', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          )),
-        ]),
+  void _toggleFavorite() {
+    setState(() => _isFavorite = !_isFavorite);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isFavorite ? '❤️ Ajouté aux favoris' : 'Retiré des favoris'),
+        backgroundColor: _isFavorite ? Colors.red.shade400 : Colors.grey.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Widget _statBadge(IconData icon, String label, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, color: color, size: 14),
-      const SizedBox(width: 4),
-      Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
-    ]),
-  );
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _loading
+          ? Container(
+              decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppColors.kDark),
+              ),
+            )
+          : _produit == null
+              ? Container(
+                  decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                        const SizedBox(height: 16),
+                        Text('Produit introuvable', style: AppColors.headingMedium(color: Colors.black54)),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => context.go('/catalogue'),
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Retour au catalogue'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kDark,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Container(
+                  decoration: const BoxDecoration(gradient: AppColors.bgGradient),
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          SizedBox(
+                            height: 350,
+                            width: double.infinity,
+                            child: PageView.builder(
+                              itemCount: (_produit!['images'] as List).length,
+                              onPageChanged: (index) => setState(() => _selectedImageIndex = index),
+                              itemBuilder: (context, index) {
+                                return CachedNetworkImage(
+                                  imageUrl: (_produit!['images'] as List)[index],
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.image_not_supported_outlined, size: 64),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.arrow_back, color: Colors.black),
+                                      onPressed: () => Navigator.pop(context),
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        _isFavorite ? Icons.favorite : Icons.favorite_border,
+                                        color: _isFavorite ? Colors.red : Colors.black,
+                                      ),
+                                      onPressed: _toggleFavorite,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          
+                          if ((_produit!['images'] as List).length > 1)
+                            Positioned(
+                              bottom: 16,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  (_produit!['images'] as List).length,
+                                  (index) => Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    width: _selectedImageIndex == index ? 24 : 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: _selectedImageIndex == index
+                                          ? Colors.white
+                                          : Colors.white.withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
 
-  Widget _buildAvis(dynamic a) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(a['client'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        Row(children: List.generate(5, (i) => Icon(Icons.star, color: i < (a['note'] ?? 0) ? Colors.amber : Colors.grey.shade300, size: 14))),
-      ]),
-      const SizedBox(height: 6),
-      Text(a['commentaire'] ?? '', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-    ]),
-  );
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 600),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(28),
+                                      topRight: Radius.circular(28),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, -4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.kPrimary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          _produit!['categorie'] ?? '',
+                                          style: AppColors.labelSmall(color: AppColors.kDark).copyWith(fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                      
+                                      const SizedBox(height: 12),
+                                      
+                                      Text(
+                                        _produit!['titre'] ?? '',
+                                        style: AppColors.headingLarge(color: Colors.black).copyWith(fontSize: 24),
+                                      ),
+                                      
+                                      const SizedBox(height: 12),
+                                      
+                                      Row(
+                                        children: [
+                                          Icon(Icons.star_rounded, color: Colors.amber.shade400, size: 20),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${_produit!['note_moyenne']}',
+                                            style: AppColors.bodyLarge(color: Colors.black).copyWith(fontWeight: FontWeight.w700),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '(${_produit!['nombre_avis']} avis)',
+                                            style: AppColors.bodyMedium(color: Colors.black54),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Icon(Icons.shopping_bag_outlined, size: 18, color: Colors.black54),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${_produit!['nombre_ventes']} ventes',
+                                            style: AppColors.bodyMedium(color: Colors.black54),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                      const SizedBox(height: 16),
+                                      
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '${_produit!['prix_dzd']} DZD',
+                                            style: AppColors.headingLarge(color: AppColors.kDark).copyWith(fontSize: 32),
+                                          ),
+                                          if (_produit!['prix_original_dzd'] != null) ...[
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              '${_produit!['prix_original_dzd']} DZD',
+                                              style: AppColors.bodyMedium(color: Colors.black38).copyWith(
+                                                decoration: TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.shade50,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                '-${((((_produit!['prix_original_dzd'] ?? 0) - (_produit!['prix_dzd'] ?? 0)) / (_produit!['prix_original_dzd'] ?? 1)) * 100).round()}%',
+                                                style: AppColors.labelSmall(color: Colors.green.shade700).copyWith(fontWeight: FontWeight.w700),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      
+                                      const SizedBox(height: 16),
+                                      
+                                      GestureDetector(
+                                        onTap: () {},
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade50,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.grey.shade200),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 40,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  gradient: AppColors.buttonGradient,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    (_produit!['vendeur']['nom_boutique'] as String)[0].toUpperCase(),
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      _produit!['vendeur']['nom_boutique'] ?? '',
+                                                      style: AppColors.bodyLarge(color: Colors.black).copyWith(fontWeight: FontWeight.w700),
+                                                    ),
+                                                    Row(
+                                                      children: [
+                                                        Icon(Icons.star_rounded, color: Colors.amber.shade400, size: 14),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          '${_produit!['vendeur']['note_moyenne']} • ${_produit!['vendeur']['total_ventes']} ventes',
+                                                          style: AppColors.labelSmall(color: Colors.black54),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const Icon(Icons.chevron_right_rounded, color: Colors.black38),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              
+                              const SizedBox(height: 8),
+                              
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 600),
+                                delay: const Duration(milliseconds: 100),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.03),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('DESCRIPTION', style: AppColors.labelSmall(color: Colors.black45).copyWith(letterSpacing: 1.2)),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        _produit!['description'] ?? '',
+                                        style: AppColors.bodyMedium(color: Colors.black87).copyWith(height: 1.6),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              
+                              const SizedBox(height: 8),
+                              
+                              if (_produit!['specifications'] != null)
+                                FadeInUp(
+                                  duration: const Duration(milliseconds: 600),
+                                  delay: const Duration(milliseconds: 200),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.03),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('SPÉCIFICATIONS', style: AppColors.labelSmall(color: Colors.black45).copyWith(letterSpacing: 1.2)),
+                                        const SizedBox(height: 12),
+                                        ...(_produit!['specifications'] as List).map((spec) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 12),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(spec['titre'], style: AppColors.bodyMedium(color: Colors.black54)),
+                                                Text(spec['valeur'], style: AppColors.bodyMedium(color: Colors.black).copyWith(fontWeight: FontWeight.w700)),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              
+                              const SizedBox(height: 100),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+      bottomNavigationBar: _produit == null
+          ? null
+          : FadeInUp(
+              duration: const Duration(milliseconds: 600),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _ajouterAuPanier,
+                      icon: const Icon(Icons.shopping_cart_rounded, size: 20),
+                      label: Text(
+                        'Ajouter au panier',
+                        style: AppColors.bodyLarge(color: Colors.white).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.kDark,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
 }

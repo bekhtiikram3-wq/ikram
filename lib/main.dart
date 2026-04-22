@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +22,13 @@ final localeNotifier = LocaleNotifier();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // ✅ Empêcher rotation écran (optionnel)
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
   await Supabase.initialize(
     url: 'https://qhvotwpezzooosdvupkt.supabase.co',
     anonKey: 'sb_publishable_MLxPqNgTR0kxSmrn4vXdbw_cbeuzZF_',
@@ -48,6 +57,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final locale = localeNotifier.value;
+    
     return MaterialApp.router(
       title: 'DigitalStore DZ',
       debugShowCheckedModeBanner: false,
@@ -59,14 +69,53 @@ class _MyAppState extends ConsumerState<MyApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      builder: (context, child) => Directionality(
-        textDirection: locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
-        child: child!,
-      ),
+      // ✅ GESTION GLOBALE DU BOUTON RETOUR
+      builder: (context, child) {
+        return WillPopScope(
+          onWillPop: () async {
+            // Récupère la route actuelle
+            final currentRoute = router.routerDelegate.currentConfiguration.uri.toString();
+            
+            // Définit où aller selon la page actuelle
+            if (currentRoute.contains('/notifications') ||
+                currentRoute.contains('/wishlist') ||
+                currentRoute.contains('/aide') ||
+                currentRoute.contains('/confidentialite') ||
+                currentRoute.contains('/langue') ||
+                currentRoute.contains('/messages')) {
+              router.go('/profil');
+              return false;
+            }
+            else if (currentRoute.contains('/produit/')) {
+              router.go('/catalogue');
+              return false;
+            }
+            else if (currentRoute.contains('/panier') ||
+                     currentRoute.contains('/bibliotheque')) {
+              router.go('/home');
+              return false;
+            }
+            
+            // Pour les autres pages, comportement par défaut
+            return true;
+          },
+          child: Directionality(
+            textDirection: locale.languageCode == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+            child: child!,
+          ),
+        );
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB), brightness: Brightness.light),
         useMaterial3: true,
         fontFamily: 'Roboto',
+        // ✅ SWIPE BACK ACTIVÉ
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2563EB),
